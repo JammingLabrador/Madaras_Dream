@@ -2,7 +2,7 @@
 
 from flask import Flask, request, render_template, url_for, redirect, session, render_template_string
 from flask_login import LoginManager, login_required, login_user, logout_user, current_user, UserMixin
-import sqlite3
+import psycopg2
 import os
 from dotenv import load_dotenv
 import requests
@@ -16,9 +16,9 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "auth_land"
 
-load_dotenv("shush.env")
-secret_key = os.getenv("secret_key")
-app.config["SECRET_KEY"] = secret_key
+# load_dotenv("shush.env")
+# secret_key = os.getenv("secret_key")
+app.config["SECRET_KEY"] = os.environ.get("secret_key")
 
 class User(UserMixin):
     def __init__(self, user_id):
@@ -69,7 +69,7 @@ def auth_land():
         is_logged_in = login(login_e, login_p)
 
         if operator.xor(bool(is_signed_up), bool(is_logged_in)):
-            conn = sqlite3.connect("email_password_repo.db")
+            conn = psycopg2.connect(os.environ.get("DATABASE_URL"))
             cursor = conn.cursor()
 
             if is_signed_up:
@@ -77,7 +77,7 @@ def auth_land():
             else:
                 params = (login_e, login_p)
 
-            cursor.execute("select given_id from email_password where email = ? and password = ?",
+            cursor.execute("select given_id from email_password where email = %s and password = %s",
                            params)
             raw_id = cursor.fetchone()
             given_id = raw_id[0]
