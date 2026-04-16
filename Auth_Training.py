@@ -1,8 +1,11 @@
-import sqlite3
+import psycopg2
+import os
 
 def signup(form_email, form_password):
-    conn = sqlite3.connect("email_password_repo.db")
+    conn = psycopg2.connect(os.environ.get("DATABASE_URL"))
     cursor = conn.cursor()
+    cursor.execute("""create table if not exists email_password (given_id serial primary key, 
+                    email text, password text)""")
 
     a_okay = False
     email_good = False
@@ -18,22 +21,24 @@ def signup(form_email, form_password):
     result = cursor.fetchall()
     for row in result:
         if form_email == row[1]:
+            conn.close()
             return a_okay
 
     if email_good and password_good:
-        cursor.execute("insert into email_password (email, password) values (?, ?)", (form_email, form_password))
+        cursor.execute("insert into email_password (email, password) values (%s, %s)", (form_email, form_password))
         conn.commit()
         conn.close()
         a_okay = True
         return a_okay
-
+    
+    conn.close()
     return a_okay
 
 def login(form_email, form_password):
     a_okay = False
-    conn = sqlite3.connect("email_password_repo.db")
+    conn = psycopg2.connect(os.environ.get("DATABASE_URL"))
     cursor = conn.cursor()
-    cursor.execute("select * from email_password where email = ? and password = ?", (form_email, form_password))
+    cursor.execute("select * from email_password where email = %s and password = %s", (form_email, form_password))
     result = cursor.fetchone()
     conn.close()
 
